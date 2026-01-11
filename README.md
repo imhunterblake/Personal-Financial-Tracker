@@ -2,6 +2,10 @@
 
 A full-stack financial management application built with Next.js, React, and Go, featuring an interactive dashboard with data visualizations, real-time metrics, and comprehensive transaction management.
 
+## 📚 Documentation
+- **[User Guide](README.md)** - Getting started, features, and installation
+- **[Technical Overview](TECHNICAL_OVERVIEW.md)** - Architecture, implementation details, and technical challenges
+
 ## 📸 Screenshots
 
 ### Dashboard Overview
