@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import EditTransactionModal from "../../components/EditTransactionModal";
@@ -8,7 +8,7 @@ import DateRangeFilter from "../../components/DateRangeFilter";
 import { BACKEND_URL, API_HEADERS } from "../../utils/apiHelpers";
 import { filterByDateRange } from "../../utils/transactionHelpers";
 
-export default function TransactionsPage() {
+function TransactionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -32,7 +32,11 @@ export default function TransactionsPage() {
   }, [searchParams]);
 
   // Get filtered transactions using utility function
-  const filteredTransactions = filterByDateRange(transactions, startDate, endDate);
+  const filteredTransactions = filterByDateRange(
+    transactions,
+    startDate,
+    endDate,
+  );
 
   // Fetch transactions when the component loads
   useEffect(() => {
@@ -100,13 +104,13 @@ export default function TransactionsPage() {
           method: "PATCH",
           headers: API_HEADERS,
           body: JSON.stringify(updatedData),
-        }
+        },
       );
       if (response.ok) {
         console.log("Transaction updated successfully!");
         // Update state to update transaction
         setTransactions((prev) =>
-          prev.map((t) => (t.id === updatedData.id ? updatedData : t))
+          prev.map((t) => (t.id === updatedData.id ? updatedData : t)),
         );
       } else {
         console.error("Failed to update transaction");
@@ -123,8 +127,8 @@ export default function TransactionsPage() {
         <Link
           href={`/?${new URLSearchParams(
             Object.fromEntries(
-              Object.entries({ startDate, endDate }).filter(([_, v]) => v)
-            )
+              Object.entries({ startDate, endDate }).filter(([_, v]) => v),
+            ),
           ).toString()}`}
           className="text-green-300 hover:underline mb-4 inline-block pt-8 px-4"
         >
@@ -166,17 +170,16 @@ export default function TransactionsPage() {
         />
         {/* Transactions Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden mx-4 mb-8">
-          {filteredTransactions.length === 0 ? (
+          {filteredTransactions.length === 0 ?
             <div className="p-8 text-center text-gray-500">
               <p className="text-lg">No transactions found.</p>
               <p className="text-sm mt-2">
-                {startDate || endDate
-                  ? "Try adjusting your date filter."
-                  : "Add your first transaction to get started!"}
+                {startDate || endDate ?
+                  "Try adjusting your date filter."
+                : "Add your first transaction to get started!"}
               </p>
             </div>
-          ) : (
-            <table className="w-full">
+          : <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   {/* Table Headers with Sorting */}
@@ -257,7 +260,7 @@ export default function TransactionsPage() {
                 ))}
               </tbody>
             </table>
-          )}
+          }
         </div>
       </div>
       <EditTransactionModal
@@ -267,5 +270,13 @@ export default function TransactionsPage() {
         onUpdate={handleUpdate}
       />
     </div>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <TransactionsPageContent />
+    </Suspense>
   );
 }

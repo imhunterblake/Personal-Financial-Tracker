@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import EditTransactionModal from "../components/EditTransactionModal";
@@ -11,7 +11,7 @@ import DateRangeFilter from "../components/DateRangeFilter";
 import { BACKEND_URL, API_HEADERS } from "../utils/apiHelpers";
 import { filterByDateRange } from "../utils/transactionHelpers";
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState([]);
@@ -35,15 +35,20 @@ export default function Home() {
   }, [searchParams]);
 
   // Get filtered transactions using utility function
-  const filteredTransactions = filterByDateRange(transactions, startDate, endDate);
+  const filteredTransactions = filterByDateRange(
+    transactions,
+    startDate,
+    endDate,
+  );
 
   //Get last 3 transactions efficiently
-  const recentTransactions = filteredTransactions.length <= 3
-    ? [...filteredTransactions].reverse()
+  const recentTransactions =
+    filteredTransactions.length <= 3 ?
+      [...filteredTransactions].reverse()
     : [
         filteredTransactions[filteredTransactions.length - 1],
         filteredTransactions[filteredTransactions.length - 2],
-        filteredTransactions[filteredTransactions.length - 3]
+        filteredTransactions[filteredTransactions.length - 3],
       ];
 
   // Fetch transactions when the component loads
@@ -87,7 +92,7 @@ export default function Home() {
           .then((response) => response.json())
           .then((data) => setTransactions(data))
           .catch((error) =>
-            console.error("Error refreshing transactions:", error)
+            console.error("Error refreshing transactions:", error),
           );
       } else {
         console.error("Failed to save transaction");
@@ -136,13 +141,13 @@ export default function Home() {
           method: "PATCH",
           headers: API_HEADERS,
           body: JSON.stringify(updatedData),
-        }
+        },
       );
       if (response.ok) {
         console.log("Transaction updated successfully!");
         // Update state to update transaction
         setTransactions((prev) =>
-          prev.map((t) => (t.id === updatedData.id ? updatedData : t))
+          prev.map((t) => (t.id === updatedData.id ? updatedData : t)),
         );
       } else {
         console.error("Failed to update transaction");
@@ -224,7 +229,7 @@ export default function Home() {
             setEndDate("");
             router.push("/");
           }}
-         />
+        />
         {/* Summary Cards */}
         <div id="summary" className="pt-6">
           <SummaryCards transactions={filteredTransactions} />
@@ -301,67 +306,70 @@ export default function Home() {
             Recent Transactions
           </h2>
 
-          {filteredTransactions.length === 0 ? (
+          {filteredTransactions.length === 0 ?
             <p className="text-gray-500">No transactions yet. Add one above!</p>
-          ) : (
-            <>
+          : <>
               <div className="space-y-3">
                 {recentTransactions.map((t) => (
-                    <div
-                      key={t.id}
-                      className="bg-white rounded-lg shadow-lg p-4 flex items-center group"
-                    >
-                      {/* Description, Category, and Date */}
-                      <div className="flex flex-col justify-start w-1/4">
-                        <p className="font-semibold text-lg">{t.description}</p>
-                        <p className="text-sm text-gray-600">
-                          {t.category} • {t.date}
-                        </p>
-                      </div>
-
-                      {/* Amount */}
-                      <div
-                        className="text-xl font-bold flex items-center justify-center w-1/2"
-                        style={{ color: getCategoryColor(t.category) }}
-                      >
-                        ${t.amount}
-                      </div>
-
-                      {/*Update Button */}
-                      <div className="flex justify-end w-1/8">
-                        <button
-                          onClick={() => handleUpdateClick(t)}
-                          className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        >
-                          Update
-                        </button>
-                      </div>
-
-                      {/* Delete Button */}
-                      <div className="flex justify-end w-1/8">
-                        <button
-                          onClick={() => handleDelete(t.id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                  <div
+                    key={t.id}
+                    className="bg-white rounded-lg shadow-lg p-4 flex items-center group"
+                  >
+                    {/* Description, Category, and Date */}
+                    <div className="flex flex-col justify-start w-1/4">
+                      <p className="font-semibold text-lg">{t.description}</p>
+                      <p className="text-sm text-gray-600">
+                        {t.category} • {t.date}
+                      </p>
                     </div>
-                  ))}
+
+                    {/* Amount */}
+                    <div
+                      className="text-xl font-bold flex items-center justify-center w-1/2"
+                      style={{ color: getCategoryColor(t.category) }}
+                    >
+                      ${t.amount}
+                    </div>
+
+                    {/*Update Button */}
+                    <div className="flex justify-end w-1/8">
+                      <button
+                        onClick={() => handleUpdateClick(t)}
+                        className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        Update
+                      </button>
+                    </div>
+
+                    {/* Delete Button */}
+                    <div className="flex justify-end w-1/8">
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
               {transactions.length > 3 && (
-                <Link href={`/transactions?${new URLSearchParams(
-                  Object.fromEntries(
-                    Object.entries({ startDate, endDate }).filter(([_, v]) => v)
-                  )
-                ).toString()}`}>
+                <Link
+                  href={`/transactions?${new URLSearchParams(
+                    Object.fromEntries(
+                      Object.entries({ startDate, endDate }).filter(
+                        ([_, v]) => v,
+                      ),
+                    ),
+                  ).toString()}`}
+                >
                   <button className="mt-4 w-full shadow bg-green-300 hover:bg-green-500 hover:shadow-lg rounded-lg p-3 font-semibold">
                     View All {filteredTransactions.length} Transactions →
                   </button>
                 </Link>
               )}
             </>
-          )}
+          }
         </div>
       </div>
       <EditTransactionModal
@@ -378,5 +386,13 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }
