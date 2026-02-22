@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -23,10 +25,10 @@ type transaction struct {
 
 // In-memory cache for transactions
 var (
-	transactionCache    []transaction
-	transactionMap      map[int]*transaction
-	cacheMutex          sync.RWMutex
-	cacheInitialized    bool
+	transactionCache []transaction
+	transactionMap   map[int]*transaction
+	cacheMutex       sync.RWMutex
+	cacheInitialized bool
 )
 
 // Helper function to load transactions from the JSON file
@@ -313,12 +315,32 @@ func main() {
 	// Initialize the Gin router
 	router := gin.Default()
 
+	allowedOrigins := []string{"http://localhost:3000", "http://127.0.0.1:3000"}
+	if frontendURL := os.Getenv("FRONTEND_URL"); frontendURL != "" {
+		for _, origin := range strings.Split(frontendURL, ",") {
+			trimmed := strings.TrimSpace(origin)
+			if trimmed != "" {
+				allowedOrigins = append(allowedOrigins, trimmed)
+			}
+		}
+	}
+
 	// Enable CORS to allow requests from the frontend
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"PUT", "PATCH", "POST", "DELETE", "GET"},
-		AllowHeaders:     []string{"Content-Type"},
+		AllowOriginFunc: func(origin string) bool {
+			for _, allowedOrigin := range allowedOrigins {
+				if origin == allowedOrigin {
+					return true
+				}
+			}
+
+			return strings.HasSuffix(origin, ".up.railway.app") || strings.HasSuffix(origin, ".railway.app")
+		},
+		AllowMethods:     []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	// Define the API routes
@@ -328,6 +350,11 @@ func main() {
 	router.DELETE("/data/transactions/:id", deleteTransaction)
 	router.PATCH("/data/transactions/:id", updateTransaction)
 
-	// Start the server on localhost:8080
-	router.Run("localhost:8080")
+	// Start the server on Railway-provided port in production
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	router.Run(":" + port)
 }
